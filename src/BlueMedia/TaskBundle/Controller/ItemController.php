@@ -51,6 +51,17 @@ class ItemController extends FOSRestController {
      */
     public function getItemAction($id, Request $request) {
         $item = $this->getDoctrine()->getRepository("BlueMediaTaskBundle:Item")->find($id);
+
+        if (!$item) {
+            $view = $this->view(array(
+                        'error_msg' => 'no item found',
+                        'result' => 'failure'
+                            ), 404)
+                    ->setFormat('json');
+
+            return $this->handleView($view);
+        }
+
         $view = $this->view($item, 200)
                 ->setFormat('json');
 
@@ -58,164 +69,78 @@ class ItemController extends FOSRestController {
     }
 
     /**
-     * Lists all Item entities.
-     *
-     */
-    public function indexAction() {
-        $em = $this->getDoctrine()->getManager();
-
-        $entities = $em->getRepository('BlueMediaTaskBundle:Item')->findAll();
-
-        return $this->render('BlueMediaTaskBundle:Item:index.html.twig', array(
-                    'entities' => $entities,
-        ));
-    }
-
-    /**
      * Creates a new Item entity.
      *
      */
     public function createAction(Request $request) {
-        $entity = new Item();
-        $form = $this->createCreateForm($entity);
-        $form->handleRequest($request);
+        $name = $request->query->get('name');
+        $stock = $request->query->get('stock');
 
-        if ($form->isValid()) {
-            $em = $this->getDoctrine()->getManager();
-            $em->persist($entity);
-            $em->flush();
+        if (!$name) {
+            $view = $this->view(array(
+                        'error_msg' => 'name required',
+                        'result' => 'failure'
+                            ), 404)
+                    ->setFormat('json');
 
-            return $this->redirect($this->generateUrl('item_show', array('id' => $entity->getId())));
+            return $this->handleView($view);
         }
 
-        return $this->render('BlueMediaTaskBundle:Item:new.html.twig', array(
-                    'entity' => $entity,
-                    'form' => $form->createView(),
-        ));
+        $item = new Item();
+
+        $item->setName(trim($name));
+        $item->setAmount((int) $stock);
+
+        $em = $this->getDoctrine()->getEntityManager();
+        $em->persist($item);
+        $em->flush();
+
+        $view = $this->view(array(
+                    'result' => 'success',
+                    'new_item_id' => $item->getId(),
+                        ), 200)
+                ->setFormat('json');
+
+        return $this->handleView($view);
     }
 
     /**
-     * Creates a form to create a Item entity.
-     *
-     * @param Item $entity The entity
-     *
-     * @return \Symfony\Component\Form\Form The form
-     */
-    private function createCreateForm(Item $entity) {
-        $form = $this->createForm(new ItemType(), $entity, array(
-            'action' => $this->generateUrl('item_create'),
-            'method' => 'POST',
-        ));
-
-        $form->add('submit', 'submit', array('label' => 'Create'));
-
-        return $form;
-    }
-
-    /**
-     * Displays a form to create a new Item entity.
+     * Update existing Item entity.
      *
      */
-    public function newAction() {
-        $entity = new Item();
-        $form = $this->createCreateForm($entity);
-
-        return $this->render('BlueMediaTaskBundle:Item:new.html.twig', array(
-                    'entity' => $entity,
-                    'form' => $form->createView(),
-        ));
-    }
-
-    /**
-     * Finds and displays a Item entity.
-     *
-     */
-    public function showAction($id) {
+    public function updateItemAction(Request $request, $id) {
         $em = $this->getDoctrine()->getManager();
+        $item = $em->getRepository('BlueMediaTaskBundle:Item')->find($id);
+        $name = $request->query->get('name');
+        $stock = $request->query->get('stock');
 
-        $entity = $em->getRepository('BlueMediaTaskBundle:Item')->find($id);
+        if (!$item) {
+            $view = $this->view(array(
+                        'error_msg' => 'no item found',
+                        'result' => 'failure'
+                            ), 404)
+                    ->setFormat('json');
 
-        if (!$entity) {
-            throw $this->createNotFoundException('Unable to find Item entity.');
+            return $this->handleView($view);
         }
 
-        $deleteForm = $this->createDeleteForm($id);
-
-        return $this->render('BlueMediaTaskBundle:Item:show.html.twig', array(
-                    'entity' => $entity,
-                    'delete_form' => $deleteForm->createView(),
-        ));
-    }
-
-    /**
-     * Displays a form to edit an existing Item entity.
-     *
-     */
-    public function editAction($id) {
-        $em = $this->getDoctrine()->getManager();
-
-        $entity = $em->getRepository('BlueMediaTaskBundle:Item')->find($id);
-
-        if (!$entity) {
-            throw $this->createNotFoundException('Unable to find Item entity.');
+        if ($name) {
+            $item->setName(trim($name));
+        }
+        if ($stock) {
+            $item->setAmount((int) $stock);
         }
 
-        $editForm = $this->createEditForm($entity);
-        $deleteForm = $this->createDeleteForm($id);
 
-        return $this->render('BlueMediaTaskBundle:Item:edit.html.twig', array(
-                    'entity' => $entity,
-                    'edit_form' => $editForm->createView(),
-                    'delete_form' => $deleteForm->createView(),
-        ));
-    }
+        $em->persist($item);
+        $em->flush();
 
-    /**
-     * Creates a form to edit a Item entity.
-     *
-     * @param Item $entity The entity
-     *
-     * @return \Symfony\Component\Form\Form The form
-     */
-    private function createEditForm(Item $entity) {
-        $form = $this->createForm(new ItemType(), $entity, array(
-            'action' => $this->generateUrl('item_update', array('id' => $entity->getId())),
-            'method' => 'PUT',
-        ));
+        $view = $this->view(array(
+                    'result' => 'sucess'
+                        ), 200)
+                ->setFormat('json');
 
-        $form->add('submit', 'submit', array('label' => 'Update'));
-
-        return $form;
-    }
-
-    /**
-     * Edits an existing Item entity.
-     *
-     */
-    public function updateAction(Request $request, $id) {
-        $em = $this->getDoctrine()->getManager();
-
-        $entity = $em->getRepository('BlueMediaTaskBundle:Item')->find($id);
-
-        if (!$entity) {
-            throw $this->createNotFoundException('Unable to find Item entity.');
-        }
-
-        $deleteForm = $this->createDeleteForm($id);
-        $editForm = $this->createEditForm($entity);
-        $editForm->handleRequest($request);
-
-        if ($editForm->isValid()) {
-            $em->flush();
-
-            return $this->redirect($this->generateUrl('item_edit', array('id' => $id)));
-        }
-
-        return $this->render('BlueMediaTaskBundle:Item:edit.html.twig', array(
-                    'entity' => $entity,
-                    'edit_form' => $editForm->createView(),
-                    'delete_form' => $deleteForm->createView(),
-        ));
+        return $this->handleView($view);
     }
 
     /**
@@ -223,38 +148,26 @@ class ItemController extends FOSRestController {
      *
      */
     public function deleteAction(Request $request, $id) {
-        $form = $this->createDeleteForm($id);
-        $form->handleRequest($request);
+        $em = $this->getDoctrine()->getManager();
+        $item = $em->getRepository('BlueMediaTaskBundle:Item')->find($id);
+        if (!$item) {
+            $view = $this->view(array(
+                        'error_msg' => 'no item found',
+                        'result' => 'failure'
+                            ), 404)
+                    ->setFormat('json');
 
-        if ($form->isValid()) {
-            $em = $this->getDoctrine()->getManager();
-            $entity = $em->getRepository('BlueMediaTaskBundle:Item')->find($id);
-
-            if (!$entity) {
-                throw $this->createNotFoundException('Unable to find Item entity.');
-            }
-
-            $em->remove($entity);
-            $em->flush();
+            return $this->handleView($view);
         }
+        $em->remove($item);
+        $em->flush();
 
-        return $this->redirect($this->generateUrl('item'));
-    }
+        $view = $this->view(array(
+                    'result' => 'sucess'
+                        ), 200)
+                ->setFormat('json');
 
-    /**
-     * Creates a form to delete a Item entity by id.
-     *
-     * @param mixed $id The entity id
-     *
-     * @return \Symfony\Component\Form\Form The form
-     */
-    private function createDeleteForm($id) {
-        return $this->createFormBuilder()
-                        ->setAction($this->generateUrl('item_delete', array('id' => $id)))
-                        ->setMethod('DELETE')
-                        ->add('submit', 'submit', array('label' => 'Delete'))
-                        ->getForm()
-        ;
+        return $this->handleView($view);
     }
 
 }
