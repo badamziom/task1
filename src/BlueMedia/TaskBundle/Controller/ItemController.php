@@ -147,7 +147,7 @@ class ItemController extends FOSRestController {
      * Deletes a Item entity.
      *
      */
-    public function deleteAction(Request $request, $id) {
+    public function deleteItemAction(Request $request, $id) {
         $em = $this->getDoctrine()->getManager();
         $item = $em->getRepository('BlueMediaTaskBundle:Item')->find($id);
         if (!$item) {
