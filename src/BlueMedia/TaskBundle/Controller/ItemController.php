@@ -72,7 +72,7 @@ class ItemController extends FOSRestController {
      * Creates a new Item entity.
      *
      */
-    public function createAction(Request $request) {
+    public function createItemAction(Request $request) {
         $name = $request->query->get('name');
         $stock = $request->query->get('stock');
 
